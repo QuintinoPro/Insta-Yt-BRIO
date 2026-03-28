@@ -1,0 +1,9 @@
+instaloader>=4.10
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+yt-dlp
+google-api-python-client>=2.100.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.1
+python-dotenv>=1.0.0
+loguru>=0.7.0

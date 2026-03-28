@@ -1,0 +1,123 @@
+"""
+Gerencia o arquivo JSON de rastreamento de vídeos.
+
+Schema de cada entrada:
+{
+    "shortcode": str,           # ID único do post no Instagram
+    "filename": str,            # Caminho relativo do arquivo de vídeo
+    "caption": str,             # Legenda original do Instagram
+    "instagram_date": str,      # ISO 8601
+    "status": str,              # downloaded | scheduled | uploaded | error
+    "youtube_video_id": str | null,
+    "youtube_publish_at": str | null,  # ISO 8601 UTC
+    "uploaded_at": str | null          # ISO 8601
+}
+"""
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from loguru import logger
+
+import config
+
+
+def _load() -> list[dict]:
+    if not config.METADATA_FILE.exists():
+        return []
+    with open(config.METADATA_FILE, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _save(records: list[dict]) -> None:
+    with open(config.METADATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+
+
+def get_all() -> list[dict]:
+    return _load()
+
+
+def get_by_shortcode(shortcode: str) -> dict | None:
+    for record in _load():
+        if record["shortcode"] == shortcode:
+            return record
+    return None
+
+
+def exists(shortcode: str) -> bool:
+    return get_by_shortcode(shortcode) is not None
+
+
+def add(record: dict) -> None:
+    """Adiciona novo registro. Ignora silenciosamente se já existir."""
+    if exists(record["shortcode"]):
+        logger.debug(f"Shortcode {record['shortcode']} já registrado — ignorando.")
+        return
+    records = _load()
+    records.append(record)
+    _save(records)
+    logger.info(f"Registrado: {record['shortcode']} ({record['status']})")
+
+
+def update_status(
+    shortcode: str,
+    status: str,
+    youtube_video_id: str | None = None,
+    youtube_publish_at: str | None = None,
+) -> None:
+    records = _load()
+    for record in records:
+        if record["shortcode"] == shortcode:
+            record["status"] = status
+            if youtube_video_id is not None:
+                record["youtube_video_id"] = youtube_video_id
+            if youtube_publish_at is not None:
+                record["youtube_publish_at"] = youtube_publish_at
+            if status == "uploaded":
+                record["uploaded_at"] = datetime.now(timezone.utc).isoformat()
+            _save(records)
+            logger.info(f"Status atualizado: {shortcode} → {status}")
+            return
+    logger.warning(f"Shortcode não encontrado para update: {shortcode}")
+
+
+def get_pending_upload() -> list[dict]:
+    """Retorna vídeos com status 'downloaded' (prontos para upload)."""
+    return [r for r in _load() if r["status"] == "downloaded"]
+
+
+def get_scheduled() -> list[dict]:
+    """Retorna vídeos já agendados no YouTube."""
+    return [r for r in _load() if r["status"] == "scheduled"]
+
+
+def next_publish_slot(scheduled: list[dict]) -> datetime:
+    """
+    Calcula o próximo slot de publicação disponível.
+    1 vídeo/dia no horário definido em config (UTC).
+    """
+    from datetime import timedelta
+
+    today = datetime.now(timezone.utc).replace(
+        hour=config.UPLOAD_HOUR,
+        minute=config.UPLOAD_MINUTE,
+        second=0,
+        microsecond=0,
+    )
+
+    occupied = set()
+    for r in scheduled:
+        if r.get("youtube_publish_at"):
+            dt = datetime.fromisoformat(r["youtube_publish_at"])
+            occupied.add(dt.date())
+
+    candidate = today
+    # Se o horário de hoje já passou, começa amanhã
+    if candidate <= datetime.now(timezone.utc):
+        candidate += timedelta(days=1)
+
+    while candidate.date() in occupied:
+        candidate += timedelta(days=1)
+
+    return candidate

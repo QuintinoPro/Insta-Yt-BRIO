@@ -1,0 +1,23 @@
+# Credentials & secrets
+.env
+auth/client_secrets.json
+auth/token.json
+auth/
+
+# Downloads & metadata (dados gerados)
+downloads/
+metadata/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
