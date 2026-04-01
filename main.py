@@ -145,18 +145,7 @@ def cmd_diagnostico() -> None:
 
 
 def _sync_published_status() -> None:
-    """Marca como 'uploaded' os vídeos cujo publishAt já passou."""
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
-    records = metadata_manager.get_all()
-    synced = 0
-    for r in records:
-        if r["status"] == "scheduled" and r.get("youtube_publish_at"):
-            pub = datetime.fromisoformat(r["youtube_publish_at"].replace("Z", "+00:00"))
-            if pub <= now:
-                metadata_manager.update_status(r["shortcode"], "uploaded")
-                logger.success(f"Marcado como publicado: {r['shortcode']} (publicado em {pub.date()})")
-                synced += 1
+    synced = metadata_manager.sync_published()
     if synced:
         reporter.generate_csv()
         logger.info(f"{synced} vídeo(s) marcados como publicados.")

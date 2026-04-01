@@ -92,6 +92,20 @@ def get_scheduled() -> list[dict]:
     return [r for r in _load() if r["status"] == "scheduled"]
 
 
+def sync_published() -> int:
+    """Marca como 'uploaded' os vídeos cujo publishAt já passou. Retorna quantidade atualizada."""
+    now = datetime.now(timezone.utc)
+    synced = 0
+    for r in _load():
+        if r["status"] == "scheduled" and r.get("youtube_publish_at"):
+            pub = datetime.fromisoformat(r["youtube_publish_at"].replace("Z", "+00:00"))
+            if pub <= now:
+                update_status(r["shortcode"], "uploaded")
+                logger.success(f"Marcado como publicado: {r['shortcode']} (publicado em {pub.date()})")
+                synced += 1
+    return synced
+
+
 def next_publish_slot(scheduled: list[dict]) -> datetime:
     """
     Calcula o próximo slot de publicação disponível.

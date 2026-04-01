@@ -7,8 +7,6 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent
 
 # Instagram
-INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME", "")
-INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD", "")
 INSTAGRAM_SESSION_ID = os.getenv("INSTAGRAM_SESSION_ID", "")
 TARGET_INSTAGRAM_PROFILE = os.getenv("TARGET_INSTAGRAM_PROFILE", "blockchainrio")
 

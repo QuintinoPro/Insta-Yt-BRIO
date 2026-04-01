@@ -11,7 +11,7 @@ import asyncio
 import json
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -80,17 +80,7 @@ def _run_task(task_name: str, fn, *args) -> bool:
 
 
 def _sync_status() -> None:
-    """Marca como 'uploaded' os vídeos cujo publishAt já passou."""
-    now = datetime.now(timezone.utc)
-    records = metadata_manager.get_all()
-    synced = 0
-    for r in records:
-        if r["status"] == "scheduled" and r.get("youtube_publish_at"):
-            pub = datetime.fromisoformat(r["youtube_publish_at"].replace("Z", "+00:00"))
-            if pub <= now:
-                metadata_manager.update_status(r["shortcode"], "uploaded")
-                logger.success(f"Marcado como publicado: {r['shortcode']} ({pub.date()})")
-                synced += 1
+    synced = metadata_manager.sync_published()
     if synced:
         logger.info(f"{synced} vídeo(s) atualizados para 'publicado'.")
     else:
