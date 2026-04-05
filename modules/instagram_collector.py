@@ -11,6 +11,7 @@ Como obter o sessionid correto:
 """
 
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -112,6 +113,7 @@ def _download_file(url: str, dest: Path, session: requests.Session) -> bool:
         return True
     except Exception as e:
         logger.error(f"Erro ao baixar arquivo: {e}")
+        dest.unlink(missing_ok=True)
         return False
 
 
@@ -169,7 +171,6 @@ def collect(max_videos: int = config.MAX_COLLECT_PER_RUN) -> list[dict]:
             caption = cap_obj.get("text", "")
 
         taken_at = item.get("taken_at", 0)
-        from datetime import datetime, timezone
         instagram_date = datetime.fromtimestamp(taken_at, tz=timezone.utc).isoformat() if taken_at else ""
 
         post_dir = config.DOWNLOAD_DIR / profile_name / shortcode

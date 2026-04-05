@@ -57,11 +57,10 @@ def upload_one(record: dict) -> bool:
     video_path = Path(record["filename"])
 
     if not video_path.is_absolute():
-        video_path = config.BASE_DIR / video_path if hasattr(config, "BASE_DIR") else Path(record["filename"])
+        video_path = config.BASE_DIR / video_path
 
-    # Tenta caminho relativo ao diretório de downloads
     if not video_path.exists():
-        video_path = config.DOWNLOAD_DIR.parent / record["filename"]
+        video_path = config.DOWNLOAD_DIR / video_path.name
 
     if not video_path.exists():
         logger.error(f"Arquivo não encontrado: {record['filename']}")
@@ -110,7 +109,7 @@ def upload_one(record: dict) -> bool:
         while response is None:
             status, response = request.next_chunk()
             if status:
-                pct = int(status.progress() * 100)
+                pct = min(100, int(status.progress() * 100))
                 logger.debug(f"Upload {shortcode}: {pct}%")
 
         video_id = response["id"]

@@ -87,6 +87,22 @@ def get_pending_upload() -> list[dict]:
     return [r for r in _load() if r["status"] == "downloaded"]
 
 
+def reset_errors() -> int:
+    """Recoloca vídeos com status 'error' de volta para 'downloaded'. Retorna quantidade resetada."""
+    records = _load()
+    count = 0
+    for record in records:
+        if record["status"] == "error":
+            record["status"] = "downloaded"
+            record["youtube_video_id"] = None
+            record["youtube_publish_at"] = None
+            count += 1
+    if count:
+        _save(records)
+        logger.info(f"{count} vídeo(s) com erro recolocados na fila.")
+    return count
+
+
 def get_scheduled() -> list[dict]:
     """Retorna vídeos já agendados no YouTube."""
     return [r for r in _load() if r["status"] == "scheduled"]
@@ -123,7 +139,7 @@ def next_publish_slot(scheduled: list[dict]) -> datetime:
     occupied = set()
     for r in scheduled:
         if r.get("youtube_publish_at"):
-            dt = datetime.fromisoformat(r["youtube_publish_at"])
+            dt = datetime.fromisoformat(r["youtube_publish_at"].replace("Z", "+00:00"))
             occupied.add(dt.date())
 
     candidate = today

@@ -11,7 +11,7 @@ import asyncio
 import json
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -38,14 +38,15 @@ def _fan_out(payload: str) -> None:
 
 def _loguru_sink(message) -> None:
     """Sink do loguru que roda na worker thread e entrega ao event loop."""
+    if _loop is None or not _loop.is_running():
+        return
     record = message.record
     payload = json.dumps({
         "level": record["level"].name.lower(),
         "message": record["message"],
         "time": record["time"].strftime("%H:%M:%S"),
     })
-    if _loop and _loop.is_running():
-        _loop.call_soon_threadsafe(_fan_out, payload)
+    _loop.call_soon_threadsafe(_fan_out, payload)
 
 
 # ─── Task state ───────────────────────────────────────────────────────────────
@@ -100,10 +101,9 @@ async def startup():
     _loop = asyncio.get_event_loop()
     logger.add(
         _loguru_sink,
-        level="DEBUG",
+        level="INFO",
         format="{message}",
         colorize=False,
-        filter=lambda r: r["level"].name != "DEBUG" or True,
     )
     logger.info("Dashboard iniciado em http://localhost:8000")
 
@@ -120,11 +120,13 @@ def get_status():
     counts = Counter(r["status"] for r in records)
 
     scheduled = metadata_manager.get_scheduled()
-    next_pub = None
-    for r in sorted(scheduled, key=lambda x: x.get("youtube_publish_at", "")):
-        if r.get("youtube_publish_at"):
-            next_pub = r["youtube_publish_at"]
-            break
+    now_utc = datetime.now(timezone.utc)
+    future = [
+        r["youtube_publish_at"] for r in scheduled
+        if r.get("youtube_publish_at") and
+        datetime.fromisoformat(r["youtube_publish_at"].replace("Z", "+00:00")) > now_utc
+    ]
+    next_pub = min(future) if future else None
 
     return {
         "total": len(records),
@@ -188,6 +190,23 @@ def start_sync():
     if not started:
         return {"error": "Já há uma tarefa em execução.", "current": _current_task}
     return {"started": True, "task": "sync"}
+
+
+def _retry_errors() -> None:
+    count = metadata_manager.reset_errors()
+    if count:
+        logger.info(f"{count} vídeo(s) recolocados na fila — iniciando upload...")
+        youtube_uploader.upload_queue(config.MAX_UPLOADS_PER_RUN)
+    else:
+        logger.info("Nenhum vídeo com erro encontrado.")
+
+
+@app.post("/api/retry-errors", status_code=202)
+def start_retry_errors():
+    started = _run_task("retry-errors", _retry_errors)
+    if not started:
+        return {"error": "Já há uma tarefa em execução.", "current": _current_task}
+    return {"started": True, "task": "retry-errors"}
 
 
 @app.get("/api/logs/stream")

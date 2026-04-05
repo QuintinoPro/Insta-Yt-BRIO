@@ -163,6 +163,7 @@ def main() -> None:
     group.add_argument("--status", action="store_true", help="Resumo rápido")
     group.add_argument("--report", action="store_true", help="Relatório completo + exporta CSV")
     group.add_argument("--sync-status", action="store_true", help="Marca como publicados os vídeos cuja data já passou")
+    group.add_argument("--retry-errors", action="store_true", help="Recoloca vídeos com erro na fila e tenta upload novamente")
     args = parser.parse_args()
 
     if args.collect:
@@ -177,6 +178,14 @@ def main() -> None:
         cmd_report()
     elif args.sync_status:
         _sync_published_status()
+        cmd_status()
+    elif args.retry_errors:
+        count = metadata_manager.reset_errors()
+        if count:
+            logger.info(f"{count} vídeo(s) prontos para nova tentativa.")
+            cmd_upload()
+        else:
+            logger.info("Nenhum vídeo com erro encontrado.")
         cmd_status()
     else:
         # Sem argumentos: mostra diagnóstico

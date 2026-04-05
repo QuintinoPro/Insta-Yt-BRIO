@@ -1,109 +1,289 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BlockchainRio Pipeline</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: #09090b; color: #fafafa; }
+    :root {
+      --bg:      #060a14;
+      --surface: #0b1220;
+      --border:  #1a2540;
+      --amber:   #f59e0b;
+      --amber-dim: rgba(245,158,11,0.08);
+      --amber-glow: rgba(245,158,11,0.18);
+      --sky:     #38bdf8;
+      --green:   #10b981;
+      --red:     #f87171;
+      --text:    #cbd5e1;
+      --muted:   #3d546e;
+      --dim:     #1a2540;
+    }
+
+    * { box-sizing: border-box; margin: 0; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      /* Subtle noise texture */
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    }
+
     .mono { font-family: 'JetBrains Mono', monospace; }
 
-    .gradient-text {
-      background: linear-gradient(135deg, #a78bfa, #60a5fa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(6,10,20,0.9);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 20;
     }
-    .gradient-bg { background: linear-gradient(135deg, #7c3aed, #2563eb); }
-    .gradient-border { border-image: linear-gradient(135deg, #7c3aed, #2563eb) 1; }
 
-    /* Cards */
-    .stat-card { transition: border-color 0.2s, transform 0.2s; }
-    .stat-card:hover { border-color: #52525b; transform: translateY(-1px); }
-
-    /* Buttons */
-    .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #2563eb);
-      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
-      box-shadow: 0 0 0 0 rgba(124,58,237,0);
+    .header-accent {
+      height: 2px;
+      background: linear-gradient(90deg, var(--amber), transparent 60%);
     }
-    .btn-primary:hover:not(:disabled) { opacity: 0.9; box-shadow: 0 4px 20px rgba(124,58,237,0.3); }
-    .btn-primary:active:not(:disabled) { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-secondary {
-      background: #27272a;
-      border: 1px solid #3f3f46;
-      transition: background 0.15s, border-color 0.15s;
+    .logo-mark {
+      width: 36px; height: 36px;
+      background: var(--amber);
+      clip-path: polygon(0 0, 100% 0, 100% 70%, 70% 100%, 0 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: #000; font-weight: 800; font-size: 13px;
     }
-    .btn-secondary:hover:not(:disabled) { background: #3f3f46; border-color: #52525b; }
-    .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Status badges */
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 500; }
-    .badge-downloaded { background: #1e3a5f; color: #93c5fd; }
-    .badge-scheduled  { background: #451a03; color: #fcd34d; }
-    .badge-uploaded   { background: #052e16; color: #6ee7b7; }
-    .badge-error      { background: #450a0a; color: #fca5a5; }
+    /* ── Stat Cards ── */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--muted);
+      padding: 20px 22px;
+      transition: border-left-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.01));
+      pointer-events: none;
+    }
+    .stat-card:hover { box-shadow: 0 0 0 1px var(--border), 0 4px 24px rgba(0,0,0,0.4); }
 
-    /* Dots */
-    .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-    .dot-green { background: #22c55e; animation: pulse-dot 2s infinite; }
-    .dot-amber { background: #f59e0b; animation: pulse-dot 1s infinite; }
-    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.35;} }
+    .stat-card.blue  { border-left-color: var(--sky); }
+    .stat-card.amber { border-left-color: var(--amber); }
+    .stat-card.green { border-left-color: var(--green); }
+    .stat-card.red   { border-left-color: var(--red); }
+    .stat-card.blue:hover  { box-shadow: 0 0 20px rgba(56,189,248,0.06); }
+    .stat-card.amber:hover { box-shadow: 0 0 20px rgba(245,158,11,0.06); }
+    .stat-card.green:hover { box-shadow: 0 0 20px rgba(16,185,129,0.06); }
+    .stat-card.red:hover   { box-shadow: 0 0 20px rgba(248,113,113,0.06); }
 
-    /* Log */
-    .log-line { animation: fadeUp 0.2s ease; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(3px);} to{opacity:1;transform:translateY(0);} }
-    #log-panel { scrollbar-width: thin; scrollbar-color: #3f3f46 #09090b; }
-    #log-panel::-webkit-scrollbar { width: 5px; }
-    #log-panel::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat-num   { font-size: 2.8rem; font-weight: 800; line-height: 1; tabular-nums: ; }
+    .stat-num.blue  { color: var(--sky); }
+    .stat-num.amber { color: var(--amber); }
+    .stat-num.green { color: var(--green); }
+    .stat-num.red   { color: var(--red); }
 
-    /* Table */
+    /* ── Panels ── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap-8px;
+    }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      display: inline-flex; align-items: center; gap: 8px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+    .btn-amber {
+      background: var(--amber);
+      color: #000;
+      border-color: var(--amber);
+    }
+    .btn-amber:hover:not(:disabled) {
+      background: #fbbf24;
+      box-shadow: 0 2px 12px var(--amber-glow);
+      transform: translateY(-1px);
+    }
+    .btn-amber:active:not(:disabled) { transform: scale(0.97); }
+
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--muted);
+    }
+
+    .btn-danger {
+      background: rgba(248,113,113,0.06);
+      color: var(--red);
+      border-color: rgba(248,113,113,0.25);
+      border-radius: 8px;
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: rgba(248,113,113,0.12);
+      border-color: var(--red);
+    }
+
+    /* ── Task banner ── */
+    .task-banner {
+      background: var(--amber-dim);
+      border: 1px solid rgba(245,158,11,0.2);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 14px;
+    }
+
+    /* ── Next publish block ── */
+    .publish-date {
+      font-size: 1.5rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em;
+      word-break: break-word; overflow-wrap: break-word;
+    }
+
+    /* ── Quota ── */
+    .quota-track {
+      height: 3px;
+      background: var(--dim);
+      overflow: hidden;
+    }
+    .quota-fill {
+      height: 100%;
+      background: var(--amber);
+      transition: width 0.6s ease;
+    }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 9px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid;
+    }
+    .badge-downloaded { color: var(--sky);   border-color: rgba(56,189,248,0.25);  background: rgba(56,189,248,0.06); }
+    .badge-scheduled  { color: var(--amber); border-color: rgba(245,158,11,0.25);  background: rgba(245,158,11,0.06); }
+    .badge-uploaded   { color: var(--green); border-color: rgba(16,185,129,0.25);  background: rgba(16,185,129,0.06); }
+    .badge-error      { color: var(--red);   border-color: rgba(248,113,113,0.25); background: rgba(248,113,113,0.06); }
+
+    /* ── Table ── */
+    .tbl-head th {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted);
+      padding: 10px 16px; border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    .video-row td { padding: 11px 16px; border-bottom: 1px solid rgba(26,37,64,0.6); }
+    .video-row:last-child td { border-bottom: none; }
     .video-row { transition: background 0.1s; }
-    .video-row:hover { background: #1c1c1f; }
+    .video-row:hover { background: rgba(255,255,255,0.02); }
 
-    /* Filter buttons */
-    .filter-btn { transition: all 0.15s; }
-    .filter-btn.active { background: #27272a; color: #e4e4e7; }
-    .filter-btn:not(.active) { color: #71717a; }
-    .filter-btn:not(.active):hover { color: #a1a1aa; background: #1c1c1f; }
+    /* ── Filter pills ── */
+    .filter-pill {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+      padding: 5px 12px; border: 1px solid transparent;
+      color: var(--muted); cursor: pointer; transition: all 0.12s;
+      text-transform: uppercase; font-family: 'Syne', sans-serif;
+    }
+    .filter-pill:hover { color: var(--text); border-color: var(--border); }
+    .filter-pill.active { color: var(--amber); border-color: rgba(245,158,11,0.35); background: var(--amber-dim); }
 
-    /* Quota bar */
-    .quota-fill { transition: width 0.5s ease; }
+    /* ── Log panel ── */
+    #log-panel {
+      background: #030710;
+      border-top: 1px solid var(--border);
+      height: 280px;
+      overflow-y: auto;
+      padding: 14px 18px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--dim) transparent;
+    }
+    #log-panel::-webkit-scrollbar { width: 4px; }
+    #log-panel::-webkit-scrollbar-thumb { background: var(--dim); }
 
-    /* Spinner */
-    .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
-    @keyframes spin { to{transform:rotate(360deg);} }
+    .log-line { animation: fadeIn 0.15s ease; display: flex; gap: 12px; padding: 1.5px 0; line-height: 1.5; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Live dots ── */
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .dot-amber { background: var(--amber); animation: blink 1s ease-in-out infinite; }
+    .dot-green { background: var(--green); animation: blink 3s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(0,0,0,0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    .spinner-light {
+      border-color: rgba(255,255,255,0.2);
+      border-top-color: var(--text);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Running indicator ── */
+    #running-indicator {
+      display: none; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--amber);
+    }
+    #running-indicator.show { display: flex; }
 
     /* Scrollbar global */
-    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--dim); }
   </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-<!-- ── HEADER ───────────────────────────────────────────────────────────────── -->
-<header class="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-10">
-  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 gradient-bg rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-lg">▶</div>
+<!-- ── HEADER ─────────────────────────────────────────────────────────────────── -->
+<div class="header-accent"></div>
+<header>
+  <div style="max-width:1100px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="logo-mark">BR</div>
       <div>
-        <h1 class="text-base font-semibold gradient-text leading-tight">BlockchainRio Pipeline</h1>
-        <p class="text-[11px] text-zinc-500">Instagram → YouTube</p>
+        <div style="font-size:13px;font-weight:800;letter-spacing:0.04em;color:#f8fafc;">BLOCKCHAINRIO</div>
+        <div style="font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);">Pipeline · Instagram → YouTube</div>
       </div>
     </div>
-    <div class="flex items-center gap-5">
-      <div id="running-indicator" class="hidden items-center gap-2 text-xs text-amber-400 font-medium">
+    <div style="display:flex;align-items:center;gap:24px;">
+      <div id="running-indicator">
         <div class="dot dot-amber"></div>
         <span id="running-label">Executando...</span>
       </div>
-      <div class="flex items-center gap-2 text-xs text-zinc-600">
+      <div style="display:flex;align-items:center;gap:7px;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);">
         <div class="dot dot-green"></div>
         <span id="last-updated">–</span>
       </div>
@@ -111,141 +291,127 @@
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+<main style="max-width:1100px;margin:0 auto;padding:28px 24px;display:flex;flex-direction:column;gap:20px;">
 
-  <!-- ── STAT CARDS ────────────────────────────────────────────────────────── -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="stat-card bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-xs text-zinc-500 mb-2">Aguardando Upload</p>
-          <p id="stat-downloaded" class="text-4xl font-bold text-blue-400 tabular-nums">–</p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl">📥</div>
-      </div>
+  <!-- ── STAT CARDS ────────────────────────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+    <div class="stat-card blue">
+      <div class="stat-label">Aguardando</div>
+      <div id="stat-downloaded" class="stat-num blue mono">–</div>
     </div>
-    <div class="stat-card bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-xs text-zinc-500 mb-2">Agendados</p>
-          <p id="stat-scheduled" class="text-4xl font-bold text-amber-400 tabular-nums">–</p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-xl">⏰</div>
-      </div>
+    <div class="stat-card amber">
+      <div class="stat-label">Agendados</div>
+      <div id="stat-scheduled" class="stat-num amber mono">–</div>
     </div>
-    <div class="stat-card bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-xs text-zinc-500 mb-2">Publicados</p>
-          <p id="stat-uploaded" class="text-4xl font-bold text-emerald-400 tabular-nums">–</p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-xl">✅</div>
-      </div>
+    <div class="stat-card green">
+      <div class="stat-label">Publicados</div>
+      <div id="stat-uploaded" class="stat-num green mono">–</div>
     </div>
-    <div class="stat-card bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-xs text-zinc-500 mb-2">Erros</p>
-          <p id="stat-error" class="text-4xl font-bold text-red-400 tabular-nums">–</p>
-        </div>
-        <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-xl">❌</div>
-      </div>
+    <div class="stat-card red">
+      <div class="stat-label">Erros</div>
+      <div id="stat-error" class="stat-num red mono">–</div>
     </div>
   </div>
 
-  <!-- ── ACTIONS + WIDGETS ─────────────────────────────────────────────────── -->
-  <div class="grid lg:grid-cols-3 gap-4">
+  <!-- ── ACTIONS + NEXT PUBLISH ────────────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:12px;min-width:0;">
 
-    <!-- Action buttons -->
-    <div class="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-      <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Ações</p>
-      <div class="flex flex-wrap gap-3">
-        <button id="btn-collect" onclick="runTask('collect')"
-          class="btn-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl flex items-center gap-2">
-          <span id="icon-collect">🔄</span>
-          <span id="label-collect">Coletar do Instagram</span>
-        </button>
-        <button id="btn-upload" onclick="runTask('upload')"
-          class="btn-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl flex items-center gap-2">
-          <span id="icon-upload">⬆️</span>
-          <span id="label-upload">Upload YouTube</span>
-        </button>
-        <button id="btn-sync" onclick="runTask('sync')"
-          class="btn-secondary text-zinc-300 text-sm font-medium px-5 py-2.5 rounded-xl flex items-center gap-2">
-          <span id="icon-sync">🔁</span>
-          <span id="label-sync">Sincronizar Status</span>
-        </button>
+    <!-- Actions -->
+    <div class="panel">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <span class="section-label">Ações</span>
       </div>
-      <div id="task-banner" class="hidden mt-4 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5">
-        <div class="dot dot-amber shrink-0"></div>
-        <span id="task-banner-text" class="text-sm text-amber-300"></span>
+      <div style="padding:18px 20px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button id="btn-collect" onclick="runTask('collect')" class="btn btn-amber">
+            <span id="icon-collect">↓</span>
+            <span id="label-collect">Coletar Instagram</span>
+          </button>
+          <button id="btn-upload" onclick="runTask('upload')" class="btn btn-amber">
+            <span id="icon-upload">↑</span>
+            <span id="label-upload">Upload YouTube</span>
+          </button>
+          <button id="btn-sync" onclick="runTask('sync')" class="btn btn-ghost">
+            <span id="icon-sync">⟳</span>
+            <span id="label-sync">Sincronizar</span>
+          </button>
+          <button id="btn-retry" onclick="runTask('retry-errors')" class="btn btn-danger hidden">
+            <span id="icon-retry">↺</span>
+            <span id="label-retry">Retentar Erros</span>
+          </button>
+        </div>
+        <div id="task-banner" class="task-banner hidden">
+          <div class="dot dot-amber" style="flex-shrink:0;"></div>
+          <span id="task-banner-text" style="font-size:12px;font-weight:600;color:var(--amber);letter-spacing:0.04em;"></span>
+        </div>
       </div>
     </div>
 
     <!-- Next publish + quota -->
-    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col justify-between">
-      <div>
-        <p class="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Próxima Publicação</p>
-        <div id="next-publish">
-          <span class="text-zinc-600 text-sm">Carregando...</span>
-        </div>
+    <div class="panel" style="display:flex;flex-direction:column;justify-content:space-between;min-width:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+        <span class="section-label">Próxima Publicação</span>
       </div>
-      <div class="mt-5 pt-4 border-t border-zinc-800">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-zinc-500">Quota YouTube (hoje)</span>
-          <span id="quota-text" class="text-xs text-zinc-400 tabular-nums">0 / 6</span>
+      <div style="padding:18px 20px;flex:1;display:flex;align-items:center;min-width:0;overflow:hidden;">
+        <div id="next-publish" style="color:var(--muted);font-size:13px;min-width:0;width:100%;">Carregando...</div>
+      </div>
+      <div style="padding:14px 20px;border-top:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px;">
+          <span style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">Quota API YouTube</span>
+          <span id="quota-text" class="mono" style="font-size:10px;color:var(--muted);">0 / 6</span>
         </div>
-        <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-          <div id="quota-bar" class="quota-fill h-full gradient-bg rounded-full" style="width:0%"></div>
+        <div class="quota-track">
+          <div id="quota-bar" class="quota-fill" style="width:0%;"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── VIDEO TABLE ───────────────────────────────────────────────────────── -->
-  <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-    <div class="px-6 py-4 border-b border-zinc-800 flex items-center justify-between flex-wrap gap-3">
-      <h2 class="text-sm font-semibold text-zinc-200">Vídeos</h2>
-      <div class="flex gap-1">
-        <button onclick="setFilter('all')"        data-f="all"        class="filter-btn active text-xs px-3 py-1.5 rounded-lg">Todos</button>
-        <button onclick="setFilter('downloaded')" data-f="downloaded" class="filter-btn text-xs px-3 py-1.5 rounded-lg">📥 Baixados</button>
-        <button onclick="setFilter('scheduled')"  data-f="scheduled"  class="filter-btn text-xs px-3 py-1.5 rounded-lg">⏰ Agendados</button>
-        <button onclick="setFilter('uploaded')"   data-f="uploaded"   class="filter-btn text-xs px-3 py-1.5 rounded-lg">✅ Publicados</button>
+  <!-- ── VIDEO TABLE ───────────────────────────────────────────────────────────── -->
+  <div class="panel" style="overflow:hidden;">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <span class="section-label">Vídeos</span>
+      <div style="display:flex;gap:4px;">
+        <button onclick="setFilter('all')"        data-f="all"        class="filter-pill active">Todos</button>
+        <button onclick="setFilter('downloaded')" data-f="downloaded" class="filter-pill">Baixados</button>
+        <button onclick="setFilter('scheduled')"  data-f="scheduled"  class="filter-pill">Agendados</button>
+        <button onclick="setFilter('uploaded')"   data-f="uploaded"   class="filter-pill">Publicados</button>
       </div>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
         <thead>
-          <tr class="border-b border-zinc-800 text-[11px] text-zinc-500 uppercase tracking-wide">
-            <th class="text-left px-6 py-3 font-medium">Shortcode</th>
-            <th class="text-left px-6 py-3 font-medium">Insta</th>
-            <th class="text-left px-6 py-3 font-medium">Status</th>
-            <th class="text-left px-6 py-3 font-medium">Publicação</th>
-            <th class="text-left px-6 py-3 font-medium max-w-xs">Caption</th>
-            <th class="text-left px-6 py-3 font-medium">Link</th>
+          <tr class="tbl-head">
+            <th>Shortcode</th>
+            <th>Data Insta</th>
+            <th>Status</th>
+            <th>Publicação</th>
+            <th style="max-width:280px;">Caption</th>
+            <th>Link</th>
           </tr>
         </thead>
         <tbody id="videos-body">
           <tr>
-            <td colspan="6" class="px-6 py-12 text-center text-zinc-600 text-sm">Carregando vídeos...</td>
+            <td colspan="6" style="padding:48px 16px;text-align:center;font-size:12px;color:var(--muted);">Carregando vídeos...</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- ── LOG PANEL ─────────────────────────────────────────────────────────── -->
-  <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+  <!-- ── LOG PANEL ─────────────────────────────────────────────────────────────── -->
+  <div class="panel" style="overflow:hidden;">
     <button id="log-toggle" onclick="toggleLog()"
-      class="w-full px-6 py-4 flex items-center justify-between text-sm hover:bg-zinc-800/50 transition-colors">
-      <div class="flex items-center gap-3">
-        <span class="text-zinc-400 font-medium">⚡ Log em tempo real</span>
+      style="width:100%;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;background:transparent;border:none;cursor:pointer;font-family:'Syne',sans-serif;color:var(--text);transition:background 0.15s;"
+      onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);">Log em Tempo Real</span>
         <div id="log-dot" class="dot dot-amber hidden"></div>
       </div>
-      <span id="log-chevron" class="text-zinc-600 text-xs">▼ expandir</span>
+      <span id="log-chevron" style="font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">▼ Expandir</span>
     </button>
-    <div id="log-panel" class="hidden border-t border-zinc-800 bg-[#09090b] h-72 overflow-y-auto mono text-xs p-5 space-y-0.5">
-      <div class="text-zinc-700">Aguardando conexão SSE...</div>
+    <div id="log-panel" class="mono hidden" style="font-size:11px;">
+      <div style="color:var(--muted);" class="dim-placeholder">Aguardando conexão SSE...</div>
     </div>
   </div>
 
@@ -262,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshVideos();
   connectSSE();
   setInterval(refreshStatus, 5000);
+  setInterval(refreshVideos, 30000);
 });
 
 // ── API calls ────────────────────────────────────────────────────────────────
@@ -271,7 +438,7 @@ async function refreshStatus() {
     const d = await r.json();
     applyStatus(d);
     document.getElementById('last-updated').textContent =
-      'Atualizado ' + new Date().toLocaleTimeString('pt-BR');
+      new Date().toLocaleTimeString('pt-BR');
   } catch (e) { /* ignore network hiccup */ }
 }
 
@@ -285,14 +452,14 @@ async function refreshVideos() {
 
 async function runTask(task) {
   if (state.isRunning) return;
-  const ep = { collect: '/api/collect', upload: '/api/upload', sync: '/api/sync' };
-  const labels = { collect: 'Coletando...', upload: 'Enviando...', sync: 'Sincronizando...' };
+  const ep = { collect: '/api/collect', upload: '/api/upload', sync: '/api/sync', 'retry-errors': '/api/retry-errors' };
+  if (!ep[task]) return;
+  const labels = { collect: 'Coletando...', upload: 'Enviando...', sync: 'Sincronizando...', 'retry-errors': 'Retentando...' };
 
-  // Feedback visual imediato — não espera o server
   setButtonsDisabled(true);
   setBtnLoading(task, labels[task]);
   openLog();
-  appendLog({ level: 'info', time: now(), message: `▶ Iniciando: ${task}` });
+  appendLog({ level: 'info', time: now(), message: '▶ Iniciando: ' + task });
 
   try {
     const r = await fetch(ep[task], { method: 'POST' });
@@ -303,13 +470,11 @@ async function runTask(task) {
       resetBtnLoading(task);
       return;
     }
-    // Polls rápidos para pegar o is_running
     setTimeout(refreshStatus, 600);
     setTimeout(refreshStatus, 2000);
     setTimeout(refreshVideos, 8000);
     setTimeout(refreshVideos, 25000);
     setTimeout(refreshVideos, 50000);
-    // Safety: se após 3min ainda não voltou, reabilita os botões
     setTimeout(() => { if (state.isRunning) { setButtonsDisabled(false); resetBtnLoading(task); } }, 180000);
   } catch (e) {
     appendLog({ level: 'error', time: now(), message: 'Falha: ' + e.message });
@@ -319,89 +484,111 @@ async function runTask(task) {
 }
 
 function setBtnLoading(task, label) {
-  const icons  = { collect: 'icon-collect', upload: 'icon-upload', sync: 'icon-sync' };
-  const labels = { collect: 'label-collect', upload: 'label-upload', sync: 'label-sync' };
+  const icons  = { collect: 'icon-collect', upload: 'icon-upload', sync: 'icon-sync', 'retry-errors': 'icon-retry' };
+  const labels = { collect: 'label-collect', upload: 'label-upload', sync: 'label-sync', 'retry-errors': 'label-retry' };
   const iconEl  = document.getElementById(icons[task]);
   const labelEl = document.getElementById(labels[task]);
-  if (iconEl)  { iconEl._orig = iconEl.textContent; iconEl.innerHTML = '<div class="spinner"></div>'; }
+  if (iconEl)  { iconEl._orig = iconEl.textContent; iconEl.innerHTML = '<div class="spinner' + (task === 'collect' || task === 'upload' ? '' : ' spinner-light') + '"></div>'; }
   if (labelEl) { labelEl._orig = labelEl.textContent; labelEl.textContent = label; }
 }
 
 function resetBtnLoading(task) {
-  const icons  = { collect: 'icon-collect', upload: 'icon-upload', sync: 'icon-sync' };
-  const labels = { collect: 'label-collect', upload: 'label-upload', sync: 'label-sync' };
+  const icons  = { collect: 'icon-collect', upload: 'icon-upload', sync: 'icon-sync', 'retry-errors': 'icon-retry' };
+  const labels = { collect: 'label-collect', upload: 'label-upload', sync: 'label-sync', 'retry-errors': 'label-retry' };
   const iconEl  = document.getElementById(icons[task]);
   const labelEl = document.getElementById(labels[task]);
-  if (iconEl && iconEl._orig)  { iconEl.textContent = iconEl._orig; }
+  if (iconEl && iconEl._orig)   { iconEl.textContent = iconEl._orig; }
   if (labelEl && labelEl._orig) { labelEl.textContent = labelEl._orig; }
 }
 
 // ── SSE ──────────────────────────────────────────────────────────────────────
+let sseSource = null;
+let refreshDebounceTimer = null;
+
+function debounceRefresh() {
+  clearTimeout(refreshDebounceTimer);
+  refreshDebounceTimer = setTimeout(refreshStatus, 500);
+}
+
 function connectSSE() {
-  const src = new EventSource('/api/logs/stream');
-  src.onmessage = e => {
+  if (sseSource) { sseSource.close(); sseSource = null; }
+  sseSource = new EventSource('/api/logs/stream');
+  sseSource.onmessage = e => {
     try { appendLog(JSON.parse(e.data)); } catch (_) {}
-    refreshStatus();
+    debounceRefresh();
   };
-  src.onerror = () => setTimeout(connectSSE, 3000);
+  sseSource.onerror = () => setTimeout(connectSSE, 3000);
 }
 
 // ── Status rendering ─────────────────────────────────────────────────────────
 function applyStatus(d) {
   const wasRunning = state.isRunning;
-  state.isRunning = d.is_running;
+  state.isRunning  = d.is_running;
   state.currentTask = d.current_task;
-  state.maxUploads = d.max_uploads || 6;
+  state.maxUploads  = d.max_uploads || 6;
 
-  // Stats
   setText('stat-downloaded', d.downloaded);
   setText('stat-scheduled',  d.scheduled);
   setText('stat-uploaded',   d.uploaded);
   setText('stat-error',      d.error);
 
-  // Quota bar
-  const pct = Math.min(Math.round((d.scheduled / state.maxUploads) * 100), 100);
+  // Retry button
+  const retryBtn = document.getElementById('btn-retry');
+  if (retryBtn) retryBtn.classList.toggle('hidden', !d.error);
+
+  // Quota
+  const pct = Math.min(Math.round((d.scheduled / (state.maxUploads || 6)) * 100), 100);
   document.getElementById('quota-bar').style.width = pct + '%';
-  document.getElementById('quota-text').textContent = `${Math.min(d.scheduled, state.maxUploads)} / ${state.maxUploads}`;
+  document.getElementById('quota-text').textContent =
+    Math.min(d.scheduled, state.maxUploads) + ' / ' + state.maxUploads;
 
   // Next publish
   const npEl = document.getElementById('next-publish');
-  if (d.next_publish) {
+  if (d.next_publish && !isNaN(new Date(d.next_publish).getTime())) {
     const dt = new Date(d.next_publish);
-    const isToday = dt.toDateString() === new Date().toDateString();
+    const isToday    = dt.toDateString() === new Date().toDateString();
     const isTomorrow = dt.toDateString() === new Date(Date.now() + 86400000).toDateString();
-    const tag = isToday ? '<span class="text-emerald-400 text-xs font-medium ml-2">Hoje!</span>'
-                : isTomorrow ? '<span class="text-amber-400 text-xs font-medium ml-2">Amanhã</span>' : '';
+    const tag = isToday
+      ? '<span style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);margin-left:8px;">Hoje</span>'
+      : isTomorrow
+      ? '<span style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber);margin-left:8px;">Amanhã</span>'
+      : '';
     npEl.innerHTML = `
-      <div class="text-2xl font-bold text-white">${dt.toLocaleDateString('pt-BR')}</div>
-      <div class="text-sm text-zinc-400 mt-0.5">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} UTC${tag}</div>`;
+      <div style="min-width:0;width:100%;">
+        <div class="publish-date">${dt.toLocaleDateString('pt-BR')}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:600;display:flex;align-items:center;gap:6px;">${dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} UTC${tag}</div>
+      </div>`;
   } else {
-    npEl.innerHTML = '<span class="text-zinc-600 text-sm">Nenhum agendado</span>';
+    npEl.innerHTML = '<span style="color:var(--muted);font-size:13px;font-weight:600;">Nenhum agendado</span>';
   }
 
   // Running state
-  const runInd = document.getElementById('running-indicator');
+  const runInd    = document.getElementById('running-indicator');
   const taskBanner = document.getElementById('task-banner');
-  const taskLabels = { collect: '🔄 Coletando vídeos do Instagram...', upload: '⬆️ Fazendo upload para o YouTube...', sync: '🔁 Sincronizando status dos vídeos...' };
+  const taskLabels = {
+    collect:       'Coletando vídeos do Instagram...',
+    upload:        'Fazendo upload para o YouTube...',
+    sync:          'Sincronizando status dos vídeos...',
+    'retry-errors':'Retentando vídeos com erro...',
+  };
 
   if (d.is_running) {
-    runInd.classList.remove('hidden'); runInd.classList.add('flex');
+    runInd.classList.add('show');
     document.getElementById('running-label').textContent = taskLabels[d.current_task] || 'Executando...';
-    taskBanner.classList.remove('hidden'); taskBanner.classList.add('flex');
+    taskBanner.classList.remove('hidden');
     document.getElementById('task-banner-text').textContent = taskLabels[d.current_task] || 'Processando...';
     document.getElementById('log-dot').classList.remove('hidden');
     setButtonsDisabled(true);
     if (!logOpen) openLog();
   } else {
-    runInd.classList.add('hidden'); runInd.classList.remove('flex');
-    taskBanner.classList.add('hidden'); taskBanner.classList.remove('flex');
+    runInd.classList.remove('show');
+    taskBanner.classList.add('hidden');
     document.getElementById('log-dot').classList.add('hidden');
     setButtonsDisabled(false);
     if (wasRunning && !d.is_running) {
       refreshVideos();
       appendLog({ level: 'success', time: now(), message: '✓ Tarefa finalizada.' });
-      // Garante reset dos botões
-      ['collect','upload','sync'].forEach(t => resetBtnLoading(t));
+      ['collect','upload','sync','retry-errors'].forEach(t => resetBtnLoading(t));
     }
   }
 }
@@ -409,7 +596,7 @@ function applyStatus(d) {
 // ── Table ─────────────────────────────────────────────────────────────────────
 function setFilter(f) {
   state.filter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => {
+  document.querySelectorAll('.filter-pill').forEach(b => {
     b.classList.toggle('active', b.dataset.f === f);
   });
   renderTable();
@@ -421,81 +608,81 @@ function renderTable() {
     : state.videos.filter(v => v.status === state.filter);
 
   const body = document.getElementById('videos-body');
+  if (!body) return;
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-zinc-600 text-sm">Nenhum vídeo encontrado</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" style="padding:48px 16px;text-align:center;font-size:12px;color:var(--muted);">Nenhum vídeo encontrado</td></tr>`;
     return;
   }
 
   body.innerHTML = rows.map(v => {
-    const badge = badges[v.status] || v.status;
+    const badge = badges[v.status] || `<span style="color:var(--muted);font-size:11px;">${esc(v.status)}</span>`;
     const pub   = v.youtube_publish_at || '—';
     const link  = v.youtube_url
-      ? `<a href="${v.youtube_url}" target="_blank" class="text-blue-400 hover:text-blue-300 text-xs transition-colors">▶ Abrir</a>`
-      : '<span class="text-zinc-700 text-xs">—</span>';
+      ? `<a href="${esc(v.youtube_url)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--amber);text-decoration:none;font-family:'Syne',sans-serif;">Abrir ↗</a>`
+      : '<span style="color:var(--muted);font-size:11px;">—</span>';
     const cap = esc(v.caption || '—');
     return `
-      <tr class="video-row border-b border-zinc-800/40 last:border-0">
-        <td class="px-6 py-3.5 mono text-zinc-300 text-xs">${esc(v.shortcode)}</td>
-        <td class="px-6 py-3.5 text-zinc-400 text-xs">${esc(v.instagram_date)}</td>
-        <td class="px-6 py-3.5">${badge}</td>
-        <td class="px-6 py-3.5 text-zinc-400 text-xs">${esc(pub)}</td>
-        <td class="px-6 py-3.5 text-zinc-500 text-xs truncate max-w-xs" title="${cap}">${cap}</td>
-        <td class="px-6 py-3.5">${link}</td>
+      <tr class="video-row">
+        <td><span class="mono" style="font-size:11px;color:var(--sky);">${esc(v.shortcode)}</span></td>
+        <td><span class="mono" style="font-size:11px;color:var(--muted);">${esc(v.instagram_date)}</span></td>
+        <td>${badge}</td>
+        <td><span class="mono" style="font-size:11px;color:var(--muted);">${esc(pub)}</span></td>
+        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${cap}">
+          <span style="font-size:11px;color:var(--muted);">${cap}</span>
+        </td>
+        <td>${link}</td>
       </tr>`;
   }).join('');
 }
 
 const badges = {
-  downloaded: '<span class="badge badge-downloaded">📥 Baixado</span>',
-  scheduled:  '<span class="badge badge-scheduled">⏰ Agendado</span>',
-  uploaded:   '<span class="badge badge-uploaded">✅ Publicado</span>',
-  error:      '<span class="badge badge-error">❌ Erro</span>',
+  downloaded: '<span class="badge badge-downloaded">Baixado</span>',
+  scheduled:  '<span class="badge badge-scheduled">Agendado</span>',
+  uploaded:   '<span class="badge badge-uploaded">Publicado</span>',
+  error:      '<span class="badge badge-error">Erro</span>',
 };
 
 // ── Log panel ────────────────────────────────────────────────────────────────
 function toggleLog() {
   logOpen = !logOpen;
   document.getElementById('log-panel').classList.toggle('hidden', !logOpen);
-  document.getElementById('log-chevron').textContent = logOpen ? '▲ recolher' : '▼ expandir';
+  document.getElementById('log-chevron').textContent = logOpen ? '▲ Recolher' : '▼ Expandir';
 }
 
 function openLog() {
   if (logOpen) return;
   logOpen = true;
   document.getElementById('log-panel').classList.remove('hidden');
-  document.getElementById('log-chevron').textContent = '▲ recolher';
+  document.getElementById('log-chevron').textContent = '▲ Recolher';
 }
 
 function appendLog(msg) {
   const panel = document.getElementById('log-panel');
   const colors = {
-    success: 'text-emerald-400',
-    error:   'text-red-400',
-    warning: 'text-amber-400',
-    info:    'text-zinc-400',
-    debug:   'text-zinc-600',
+    success: '#10b981',
+    error:   '#f87171',
+    warning: '#f59e0b',
+    info:    '#475569',
+    debug:   '#1e3a5f',
   };
-  const c = colors[msg.level] || 'text-zinc-400';
+  const col = colors[msg.level] || '#475569';
   const el = document.createElement('div');
-  el.className = `log-line flex gap-3 py-0.5 ${c}`;
-  el.innerHTML = `<span class="text-zinc-600 shrink-0 tabular-nums">${msg.time}</span><span class="break-all">${esc(msg.message)}</span>`;
+  el.className = 'log-line';
 
-  // Remove placeholder
-  const ph = panel.querySelector('.text-zinc-700');
+  const ph = panel.querySelector('.dim-placeholder');
   if (ph) ph.remove();
 
+  el.innerHTML = `<span style="color:#1e3a5f;flex-shrink:0;tabular-nums:;">${msg.time}</span><span style="color:${col};word-break:break-all;">${esc(msg.message)}</span>`;
   panel.appendChild(el);
   panel.scrollTop = panel.scrollHeight;
-
-  // Max 300 lines
   while (panel.children.length > 300) panel.removeChild(panel.firstChild);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function setButtonsDisabled(disabled) {
-  ['btn-collect','btn-upload','btn-sync'].forEach(id => {
+  ['btn-collect','btn-upload','btn-sync','btn-retry'].forEach(id => {
     const b = document.getElementById(id);
-    b.disabled = disabled;
+    if (b) b.disabled = disabled;
   });
 }
 
@@ -504,12 +691,10 @@ function setText(id, val) {
   if (el) el.textContent = val ?? '–';
 }
 
-function now() {
-  return new Date().toLocaleTimeString('pt-BR');
-}
+function now() { return new Date().toLocaleTimeString('pt-BR'); }
 
 function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 </script>
 </body>
