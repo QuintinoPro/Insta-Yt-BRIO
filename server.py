@@ -14,10 +14,11 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from pydantic import BaseModel
 
 import config
 from modules import instagram_collector, metadata_manager, reporter, youtube_uploader
@@ -89,7 +90,7 @@ def _sync_status() -> None:
 
 
 # ─── App ──────────────────────────────────────────────────────────────────────
-app = FastAPI(title="BlockchainRio Pipeline")
+app = FastAPI(title=config.PIPELINE_TITLE)
 
 Path("static").mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -139,6 +140,67 @@ def get_status():
         "next_publish": next_pub,
         "max_uploads": config.MAX_UPLOADS_PER_RUN,
     }
+
+
+@app.get("/api/config")
+def get_config():
+    # Relê settings.json em tempo real para refletir mudanças imediatas
+    s = config._load_settings()
+    def v(key, fallback):
+        return s.get(key) or fallback
+    return {
+        "brand_name":        v("PIPELINE_BRAND_NAME", config.PIPELINE_BRAND_NAME),
+        "brand_logo":        v("PIPELINE_BRAND_LOGO", config.PIPELINE_BRAND_LOGO),
+        "title":             v("PIPELINE_TITLE",      config.PIPELINE_TITLE),
+        "instagram_profile": v("TARGET_INSTAGRAM_PROFILE", config.TARGET_INSTAGRAM_PROFILE),
+    }
+
+
+class SettingsPayload(BaseModel):
+    PIPELINE_BRAND_NAME:      str = ""
+    PIPELINE_BRAND_LOGO:      str = ""
+    PIPELINE_TITLE:           str = ""
+    TARGET_INSTAGRAM_PROFILE: str = ""
+    INSTAGRAM_SESSION_ID:     str = ""
+    UPLOAD_HOUR:              int = 13
+    UPLOAD_MINUTE:            int = 0
+    MAX_COLLECT_PER_RUN:      int = 30
+    MAX_UPLOADS_PER_RUN:      int = 6
+
+
+@app.get("/api/settings")
+def get_settings():
+    """Retorna configurações atuais (settings.json > .env > defaults)."""
+    import os
+    s = config._load_settings()
+    def v(key, default):
+        return s.get(key) or os.getenv(key, default)
+    return {
+        "PIPELINE_BRAND_NAME":      v("PIPELINE_BRAND_NAME",      "My Pipeline"),
+        "PIPELINE_BRAND_LOGO":      v("PIPELINE_BRAND_LOGO",      "YT"),
+        "PIPELINE_TITLE":           v("PIPELINE_TITLE",           "Instagram → YouTube Pipeline"),
+        "TARGET_INSTAGRAM_PROFILE": v("TARGET_INSTAGRAM_PROFILE", ""),
+        "INSTAGRAM_SESSION_ID":     v("INSTAGRAM_SESSION_ID",     ""),
+        "UPLOAD_HOUR":              int(v("UPLOAD_HOUR",          "13")),
+        "UPLOAD_MINUTE":            int(v("UPLOAD_MINUTE",        "0")),
+        "MAX_COLLECT_PER_RUN":      int(v("MAX_COLLECT_PER_RUN",  "30")),
+        "MAX_UPLOADS_PER_RUN":      int(v("MAX_UPLOADS_PER_RUN",  "6")),
+    }
+
+
+@app.post("/api/settings")
+def save_settings(payload: SettingsPayload):
+    """Persiste configurações em settings.json."""
+    data = payload.model_dump()
+    try:
+        config.SETTINGS_FILE.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    logger.info("Configurações salvas via dashboard.")
+    return {"ok": True}
 
 
 @app.get("/api/videos")

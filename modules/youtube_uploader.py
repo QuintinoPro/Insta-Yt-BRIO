@@ -44,7 +44,7 @@ def _make_title(record: dict) -> str:
 
     # Fallback: usa a data do post
     date_str = record.get("instagram_date", "")[:10]  # YYYY-MM-DD
-    return f"BlockchainRio – {date_str}"
+    return f"{config.PIPELINE_BRAND_NAME} – {date_str}"
 
 
 def upload_one(record: dict) -> bool:

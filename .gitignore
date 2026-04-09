@@ -1,5 +1,6 @@
 # Credentials & secrets
 .env
+settings.json
 auth/client_secrets.json
 auth/token.json
 auth/

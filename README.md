@@ -1,6 +1,8 @@
-# Insta → YT Pipeline — BlockchainRio
+# Instagram → YouTube Pipeline
 
-Pipeline de automação que coleta vídeos do Instagram (@blockchainrio) e os agenda automaticamente no YouTube.
+> **English:** Automation pipeline that collects videos from any Instagram profile and schedules them to YouTube automatically. Clone, configure `.env`, and run.
+
+Pipeline de automação que coleta vídeos de qualquer perfil do Instagram e os agenda automaticamente no YouTube.
 
 ## Como funciona
 
@@ -8,9 +10,34 @@ Pipeline de automação que coleta vídeos do Instagram (@blockchainrio) e os ag
 Instagram feed (API interna) → download local → YouTube Data API v3 (agendado)
 ```
 
-1. **Coleta** — busca os últimos posts do perfil Instagram via API interna (sessionid cookie), baixa os vídeos (`.mp4`) e registra metadados localmente
-2. **Upload** — envia os vídeos baixados ao YouTube com status `private` + `publishAt` (auto-publicação futura)
+1. **Coleta** — busca os últimos posts do perfil Instagram via API interna (cookie sessionid), baixa os vídeos (`.mp4`) e registra metadados localmente
+2. **Upload** — envia os vídeos ao YouTube com status `private` + `publishAt` (auto-publicação futura)
 3. **Agendamento** — 1 vídeo/dia às 13h UTC, encadeados automaticamente
+
+## Quick Start
+
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/seu-usuario/instagram-youtube-pipeline
+cd instagram-youtube-pipeline
+python -m venv .venv
+.venv\Scripts\Activate.ps1   # Windows
+source .venv/bin/activate    # Linux/Mac
+pip install -r requirements.txt
+
+# 2. Configurar
+cp .env.example .env
+# Edite o .env: INSTAGRAM_SESSION_ID, TARGET_INSTAGRAM_PROFILE, PIPELINE_BRAND_NAME
+
+# 3. Autenticar YouTube (uma vez)
+python -m modules.youtube_auth
+
+# 4. Rodar
+python server.py        # Dashboard em http://localhost:8000
+# ou via terminal:
+python main.py --collect
+python main.py --upload
+```
 
 ## Dashboard web
 
@@ -24,10 +51,6 @@ Interface com cards de status, botões de ação, log em tempo real (SSE) e tabe
 ## Uso via terminal
 
 ```bash
-# Ativar venv
-.venv\Scripts\Activate.ps1   # Windows
-source .venv/bin/activate    # Linux/Mac
-
 python main.py               # Diagnóstico (o que fazer agora)
 python main.py --collect     # Baixa novos vídeos do Instagram (até MAX_COLLECT_PER_RUN)
 python main.py --upload      # Sobe para o YouTube (até MAX_UPLOADS_PER_RUN)
@@ -36,30 +59,17 @@ python main.py --report      # Relatório completo + exporta CSV
 python main.py --sync-status # Marca como publicados os vídeos cuja data já passou
 ```
 
-## Setup
+## Setup detalhado
 
-### 1. Instalar dependências
+### Credenciais do Instagram
 
-```bash
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-### 2. Configurar `.env`
-
-```bash
-cp .env.example .env
-# Edite o .env com suas credenciais
-```
-
-### 3. Credenciais do Instagram
-
-1. Abra o Instagram no Chrome (logado com qualquer conta)
+1. Abra o Instagram no Chrome (logado)
 2. F12 → Application → Cookies → copie o valor de `sessionid`
 3. Cole em `INSTAGRAM_SESSION_ID` no `.env`
 
-### 4. Credenciais do YouTube
+> O cookie expira periodicamente. Se a coleta parar de funcionar, renove o `sessionid`.
+
+### Credenciais do YouTube
 
 1. [Google Cloud Console](https://console.cloud.google.com) → novo projeto
 2. Ative a **YouTube Data API v3**
@@ -106,9 +116,16 @@ cp .env.example .env
 
 | Variável | Descrição | Padrão |
 |----------|-----------|--------|
+| `PIPELINE_BRAND_NAME` | Nome exibido no dashboard | `My Pipeline` |
+| `PIPELINE_BRAND_LOGO` | Iniciais no logo do dashboard | `YT` |
+| `PIPELINE_TITLE` | Título da aba do navegador | `Instagram → YouTube Pipeline` |
 | `INSTAGRAM_SESSION_ID` | Cookie sessionid do Instagram | — |
-| `TARGET_INSTAGRAM_PROFILE` | Perfil a coletar | `blockchainrio` |
+| `TARGET_INSTAGRAM_PROFILE` | Perfil a coletar | — |
 | `YOUTUBE_CLIENT_SECRETS_FILE` | Caminho do client_secrets.json | `auth/client_secrets.json` |
 | `MAX_COLLECT_PER_RUN` | Máx. vídeos a baixar por rodada | `30` |
 | `MAX_UPLOADS_PER_RUN` | Máx. uploads ao YouTube por rodada | `6` |
 | `UPLOAD_HOUR` | Hora de publicação (UTC) | `13` |
+
+## Licença
+
+MIT — veja [LICENSE](LICENSE).

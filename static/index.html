@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BlockchainRio Pipeline</title>
+  <title id="page-title">Pipeline</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -263,6 +263,64 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--dim); }
+
+    /* ── Settings modal ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh;
+      overflow-y: auto; padding: 28px;
+      animation: modal-in .18s ease;
+    }
+    .settings-group { margin-bottom: 20px; }
+    .settings-group-title {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border);
+    }
+    .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .field label { font-size: 11px; font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
+    .field input {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--text); outline: none; transition: border-color .15s;
+    }
+    .field input:focus { border-color: var(--amber); }
+    .field .hint { font-size: 10px; color: var(--muted); }
+    .input-wrap { position: relative; display: flex; }
+    .input-wrap input { flex: 1; padding-right: 36px; }
+    .input-eye {
+      position: absolute; right: 0; top: 0; bottom: 0;
+      width: 34px; display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      transition: color .15s;
+    }
+    .input-eye:hover { color: var(--text); }
+    .gear-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      padding: 6px 8px; cursor: pointer; color: var(--muted);
+      display: flex; align-items: center; transition: color .15s, border-color .15s;
+    }
+    .gear-btn:hover { color: var(--text); border-color: var(--text); }
+    .modal-close-btn {
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; font-size: 16px; transition: color .15s, background .15s;
+    }
+    .modal-close-btn:hover { color: var(--text); background: var(--dim); }
+    #settings-saved {
+      display: none; font-size: 11px; color: var(--green);
+      font-weight: 600; letter-spacing: 0.04em;
+    }
   </style>
 </head>
 <body>
@@ -272,9 +330,9 @@
 <header>
   <div style="max-width:1100px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;">
     <div style="display:flex;align-items:center;gap:14px;">
-      <div class="logo-mark">BR</div>
+      <div class="logo-mark" id="brand-logo">--</div>
       <div>
-        <div style="font-size:13px;font-weight:800;letter-spacing:0.04em;color:#f8fafc;">BLOCKCHAINRIO</div>
+        <div id="brand-name" style="font-size:13px;font-weight:800;letter-spacing:0.04em;color:#f8fafc;">Loading...</div>
         <div style="font-size:9px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);">Pipeline · Instagram → YouTube</div>
       </div>
     </div>
@@ -287,6 +345,12 @@
         <div class="dot dot-green"></div>
         <span id="last-updated">–</span>
       </div>
+      <button class="gear-btn" onclick="openSettings()" title="Configurações">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
   </div>
 </header>
@@ -417,13 +481,193 @@
 
 </main>
 
+<!-- ── SETTINGS MODAL ──────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="settings-modal">
+  <div class="modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div style="font-size:14px;font-weight:800;letter-spacing:0.04em;color:#f8fafc;">Configurações</div>
+      <button class="modal-close-btn" onclick="closeSettings()" title="Fechar (Esc)">✕</button>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Branding</div>
+      <div class="field">
+        <label>Nome do projeto</label>
+        <input id="s-brand-name" type="text" placeholder="My Pipeline" />
+        <span class="hint">Exibido no cabeçalho do dashboard</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field">
+          <label>Iniciais do logo</label>
+          <input id="s-brand-logo" type="text" placeholder="YT" maxlength="4" />
+        </div>
+        <div class="field">
+          <label>Título da aba</label>
+          <input id="s-title" type="text" placeholder="Instagram → YouTube Pipeline" />
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Instagram</div>
+      <div class="field">
+        <label>Perfil alvo</label>
+        <input id="s-ig-profile" type="text" placeholder="nome_do_perfil" />
+        <span class="hint">Sem o @ — ex: blockchainrio</span>
+      </div>
+      <div class="field">
+        <label>Session ID</label>
+        <div class="input-wrap">
+          <input id="s-session-id" type="password" placeholder="••••••••••••••••" />
+          <button class="input-eye" type="button" onclick="toggleSessionVisibility()" title="Mostrar/ocultar">
+            <svg id="eye-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <span class="hint">Chrome → F12 → Application → Cookies → sessionid</span>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Agendamento & Limites</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="field">
+          <label>Hora de publicação (UTC)</label>
+          <input id="s-upload-hour" type="number" min="0" max="23" placeholder="13" />
+        </div>
+        <div class="field">
+          <label>Minuto</label>
+          <input id="s-upload-minute" type="number" min="0" max="59" placeholder="0" />
+        </div>
+        <div class="field">
+          <label>Máx. coleta / run</label>
+          <input id="s-max-collect" type="number" min="1" max="100" placeholder="30" />
+        </div>
+        <div class="field">
+          <label>Máx. uploads / run</label>
+          <input id="s-max-uploads" type="number" min="1" max="6" placeholder="6" />
+          <span class="hint">Quota YT: máx 6/dia</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:8px;">
+      <span id="settings-saved">Salvo!</span>
+      <button onclick="closeSettings()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;">Cancelar</button>
+      <button onclick="saveSettings()" style="background:var(--amber);border:none;border-radius:6px;padding:8px 18px;color:#000;cursor:pointer;font-size:12px;font-weight:700;">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
 let state = { isRunning: false, currentTask: '', filter: 'all', videos: [], maxUploads: 6 };
 let logOpen = false;
 
+// ── Config ───────────────────────────────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    const c = await r.json();
+    document.getElementById('brand-name').textContent = c.brand_name.toUpperCase();
+    document.getElementById('brand-logo').textContent = c.brand_logo;
+    document.getElementById('page-title').textContent = c.title;
+  } catch (e) { /* mantém fallback do DOM */ }
+}
+
+// ── Settings modal ────────────────────────────────────────────────────────────
+let _backdropMouseDownOnBackdrop = false;
+
+// Fecha com Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('settings-modal').classList.contains('open')) {
+    closeSettings();
+  }
+});
+
+async function openSettings() {
+  try {
+    const r = await fetch('/api/settings');
+    const s = await r.json();
+    document.getElementById('s-brand-name').value    = s.PIPELINE_BRAND_NAME || '';
+    document.getElementById('s-brand-logo').value    = s.PIPELINE_BRAND_LOGO || '';
+    document.getElementById('s-title').value         = s.PIPELINE_TITLE || '';
+    document.getElementById('s-ig-profile').value    = s.TARGET_INSTAGRAM_PROFILE || '';
+    document.getElementById('s-session-id').value    = s.INSTAGRAM_SESSION_ID || '';
+    document.getElementById('s-upload-hour').value   = s.UPLOAD_HOUR ?? 13;
+    document.getElementById('s-upload-minute').value = s.UPLOAD_MINUTE ?? 0;
+    document.getElementById('s-max-collect').value   = s.MAX_COLLECT_PER_RUN ?? 30;
+    document.getElementById('s-max-uploads').value   = s.MAX_UPLOADS_PER_RUN ?? 6;
+  } catch (e) {}
+  document.getElementById('settings-saved').style.display = 'none';
+  document.getElementById('settings-modal').classList.add('open');
+  // Auto-focus no primeiro campo após a animação
+  setTimeout(() => document.getElementById('s-brand-name').focus(), 80);
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+  // Esconde session ID ao fechar
+  document.getElementById('s-session-id').type = 'password';
+  document.getElementById('eye-icon').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+function toggleSessionVisibility() {
+  const input = document.getElementById('s-session-id');
+  const icon  = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+async function saveSettings() {
+  const payload = {
+    PIPELINE_BRAND_NAME:      document.getElementById('s-brand-name').value.trim(),
+    PIPELINE_BRAND_LOGO:      document.getElementById('s-brand-logo').value.trim(),
+    PIPELINE_TITLE:           document.getElementById('s-title').value.trim(),
+    TARGET_INSTAGRAM_PROFILE: document.getElementById('s-ig-profile').value.trim(),
+    INSTAGRAM_SESSION_ID:     document.getElementById('s-session-id').value.trim(),
+    UPLOAD_HOUR:              parseInt(document.getElementById('s-upload-hour').value) || 13,
+    UPLOAD_MINUTE:            parseInt(document.getElementById('s-upload-minute').value) || 0,
+    MAX_COLLECT_PER_RUN:      parseInt(document.getElementById('s-max-collect').value) || 30,
+    MAX_UPLOADS_PER_RUN:      parseInt(document.getElementById('s-max-uploads').value) || 6,
+  };
+  try {
+    const r = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error();
+    document.getElementById('settings-saved').style.display = 'inline';
+    setTimeout(() => {
+      document.getElementById('settings-saved').style.display = 'none';
+      closeSettings();
+      loadConfig();
+    }, 1200);
+  } catch (e) {
+    alert('Erro ao salvar configurações.');
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Backdrop do modal: só fecha se mousedown E mouseup foram no fundo (não dentro do modal)
+  const backdrop = document.getElementById('settings-modal');
+  backdrop.addEventListener('mousedown', (e) => {
+    _backdropMouseDownOnBackdrop = e.target === backdrop;
+  });
+  backdrop.addEventListener('mouseup', (e) => {
+    if (_backdropMouseDownOnBackdrop && e.target === backdrop) closeSettings();
+    _backdropMouseDownOnBackdrop = false;
+  });
+
+  loadConfig();
   refreshStatus();
   refreshVideos();
   connectSSE();
